@@ -1,8 +1,36 @@
 #include <stdio.h>
+#include "mlib/vector.h"
+#include <assert.h>
 
 int main(void)
 {
-    printf("");
+    Vector v = vector_create(5);
+    assert(v.data != NULL);
+
+    v.data[0] = 1.0f;
+    v.data[1] = 2.0f;
+    v.data[2] = 3.0f;
+    v.data[3] = 4.0f;
+    v.data[4] = 5.0f;
+    
+
+    assert(v.length == 5);
+    assert(v.data[0] == 1.0f);
+    assert(v.data[1] == 2.0f);
+    assert(v.data[2] == 3.0f);
+    assert(v.data[3] == 4.0f);
+    assert(v.data[4] == 5.0f);
+    
+
+
+    
+
+    vector_destroy(&v);
+    assert(v.data == NULL);
+    assert(v.length == 0);
+
+
+
 
     return 0;
 }

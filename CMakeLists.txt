@@ -16,3 +16,10 @@ target_compile_options(mlib PRIVATE ${MLIB_WARNING_FLAGS})
 
 enable_testing()
 add_subdirectory(tests)
+
+option(MLIB_ENABLE_SANITIZERS "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+
+if(MLIB_ENABLE_SANITIZERS)
+    target_compile_options(mlib PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(mlib PUBLIC -fsanitize=address,undefined)
+endif()

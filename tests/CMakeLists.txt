@@ -8,3 +8,4 @@ add_test(
     NAME test_vector
     COMMAND test_vector
 )
+
