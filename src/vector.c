@@ -6,7 +6,13 @@ Vector vector_create(size_t length)
 {
     Vector v;
     v.length = length;
-    v.data = malloc(length*sizeof(float));
+
+    if (length == 0) {
+        v.data = NULL;
+    } else {
+        v.data = malloc(length * sizeof(float));
+    }
+
     return v;
 }
 
