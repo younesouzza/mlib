@@ -9,3 +9,13 @@ add_test(
     COMMAND test_vector
 )
 
+add_executable(test_matrix
+    test_matrix.c
+)
+
+target_link_libraries(test_matrix PRIVATE mlib)
+
+add_test(
+    NAME test_matrix
+    COMMAND test_matrix
+)

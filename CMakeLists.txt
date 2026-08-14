@@ -8,6 +8,8 @@ set(MLIB_WARNING_FLAGS -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 
 add_library(mlib
     src/vector.c
+    src/matrix.c
+
 )
 
 target_include_directories(mlib PUBLIC include)
