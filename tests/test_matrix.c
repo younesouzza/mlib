@@ -3,8 +3,6 @@
 
 int main(void){
     Matrix m = matrix_create(2,3);
-    m.data[4]  = 42.0f;
-
     Matrix m1 = matrix_create(2,0);
     Matrix m2 = matrix_create(0,0);
     Matrix m3 = matrix_create(10000000000ULL, 10000000000ULL);
@@ -14,7 +12,8 @@ int main(void){
     assert(m.data != NULL);
     assert(m.cols == 3);
     assert(m.rows == 2);
-    assert(m.data[4] == 42.0f);
+    matrix_set(&m, 1, 1, 42.0f);
+    assert(matrix_get(&m, 1, 1) == 42.0f);
 
     assert(m1.data == NULL);
     assert(m1.cols == 0);

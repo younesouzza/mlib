@@ -11,6 +11,8 @@ typedef struct
 
 Matrix matrix_create(size_t rows , size_t cols);
 void matrix_destroy(Matrix *m);
+float matrix_get(const Matrix *m, size_t row, size_t col);
+void matrix_set(Matrix *m, size_t row, size_t col, float value);
 
 
 
