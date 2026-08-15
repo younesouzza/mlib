@@ -43,9 +43,54 @@ float matrix_get(const Matrix *m, size_t row, size_t col){
 
 }
 
-
 void matrix_set(Matrix *m, size_t row, size_t col, float value){
     assert(row < m->rows && col < m->cols);
     m->data[row * m->cols + col] = value;
+}
+
+Matrix matrix_add(const Matrix *m1 ,const Matrix *m2){
+    if(m1->rows == m2->rows && m1->cols == m2->cols){
+        size_t Rrows = m1->rows;
+        size_t Rcols = m1->cols;
+        Matrix result = matrix_create(Rrows , Rcols);
+
+        for (size_t i = 0; i < m1->rows; i++)
+        {
+            for (size_t j = 0; j < m1->cols; j++)
+            {
+                float value;
+                value = matrix_get(m1, i, j) + matrix_get(m2 , i, j);
+                matrix_set(&result , i, j , value);
+            }
+            
+            
+        }
+        return result;
+        
+    }
+    else{
+        return matrix_create(0,0);
+    }
+
+}
+
+Matrix matrix_scale(const Matrix *m , float scalar){
+    Matrix result = matrix_create(m->rows , m->cols);
+    if (result.data == NULL && m->rows > 0 && m->cols > 0)
+    {
+        return result;
+    }
+    for (size_t i = 0; i < m->rows; i++)
+    {
+        for (size_t j = 0; j < m->cols; j++)
+        {
+            float value;
+            value = matrix_get(m ,i ,j)*scalar;
+            matrix_set(&result , i , j , value);
+        }
+        
+    }
+    return result;
+    
 
 }
