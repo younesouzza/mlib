@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
-
+#include <stdbool.h>
 
 Matrix matrix_create(size_t rows , size_t cols){
     Matrix m;
@@ -93,4 +93,29 @@ Matrix matrix_scale(const Matrix *m , float scalar){
     return result;
     
 
+}
+bool matrix_multiply(const Matrix *a, const Matrix *b, Matrix *out_result)
+{
+    if (a->cols != b->rows)
+    {
+        return false;
+    }
+    else
+    {
+        *out_result = matrix_create(a->rows, b->cols);
+
+        for (size_t i = 0; i < a->rows; i++)
+        {
+            for (size_t j = 0; j < b->cols; j++)
+            {
+                float sum = 0.0f;
+                for (size_t k = 0; k < a->cols; k++)
+                {
+                    sum += matrix_get(a, i, k) * matrix_get(b, k, j);
+                }
+                matrix_set(out_result, i, j, sum);
+            }
+        }
+        return true;
+    }
 }

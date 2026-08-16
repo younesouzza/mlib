@@ -77,6 +77,48 @@ int main(void){
     assert(scaled.cols == 3);
     assert(matrix_get(&scaled, 0, 0) == 2.0f);   /* 1 * 2 */
     assert(matrix_get(&scaled, 1, 2) == 16.0f);  /* 8 * 2 */
+
+    /* matrix_multiply: normal case, rectangular shapes */
+    Matrix a2 = matrix_create(2, 3);
+    matrix_set(&a2, 0, 0, 1.0f);
+    matrix_set(&a2, 0, 1, 2.0f);
+    matrix_set(&a2, 0, 2, 3.0f);
+    matrix_set(&a2, 1, 0, 4.0f);
+    matrix_set(&a2, 1, 1, 5.0f);
+    matrix_set(&a2, 1, 2, 6.0f);
+
+    Matrix b2 = matrix_create(3, 2);
+    matrix_set(&b2, 0, 0, 7.0f);
+    matrix_set(&b2, 0, 1, 8.0f);
+    matrix_set(&b2, 1, 0, 9.0f);
+    matrix_set(&b2, 1, 1, 10.0f);
+    matrix_set(&b2, 2, 0, 11.0f);
+    matrix_set(&b2, 2, 1, 12.0f);
+
+    Matrix product;
+    bool mul_ok = matrix_multiply(&a2, &b2, &product);
+    assert(mul_ok == true);
+    assert(product.rows == 2);
+    assert(product.cols == 2);
+    assert(matrix_get(&product, 0, 0) == 58.0f);
+    assert(matrix_get(&product, 0, 1) == 64.0f);
+    assert(matrix_get(&product, 1, 0) == 139.0f);
+    assert(matrix_get(&product, 1, 1) == 154.0f);
+
+    matrix_destroy(&a2);
+    matrix_destroy(&b2);
+    matrix_destroy(&product);
+
+    /* matrix_multiply: mismatched inner dimensions */
+    Matrix a3 = matrix_create(2, 3);
+    Matrix b3 = matrix_create(2, 2);  /* a3.cols (3) != b3.rows (2) */
+
+    Matrix bad_product;
+    bool mul_bad = matrix_multiply(&a3, &b3, &bad_product);
+    assert(mul_bad == false);
+
+    matrix_destroy(&a3);
+    matrix_destroy(&b3);
     
     matrix_destroy(&scaled);
     matrix_destroy(&sum);
