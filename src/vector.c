@@ -1,6 +1,7 @@
 #include "mlib/vector.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 Vector vector_create(size_t length)
 {
@@ -23,15 +24,24 @@ void vector_destroy(Vector *v){
 
 
 }
+float vector_get(const Vector *v, size_t index) {
+    assert(v->data != NULL && index < v->length);
+    return v->data[index];
+}
+
+void vector_set(Vector *v, size_t index, float value) {
+    assert(v->data != NULL && index < v->length);
+    v->data[index] = value;
+}
 
 bool vector_dot(const Vector *a, const Vector *b, float *out_result){
-    if (a->length==b->length)
+    if (a->length == b->length)
     {
         *out_result = 0.0f;
 
         for (size_t i = 0; i < a->length; i++)
         {
-            *out_result += a->data[i] * b->data[i];
+            *out_result += vector_get(a, i) * vector_get(b, i);
         }
 
         return true;
@@ -43,14 +53,14 @@ bool vector_dot(const Vector *a, const Vector *b, float *out_result){
 
 Vector vector_add(const Vector *a, const Vector *b)
 {
-    if (a->length==b->length)
+    if (a->length == b->length)
     {
-        size_t result_length ;
-        result_length = a->length;
+        size_t result_length = a->length;
         Vector result = vector_create(result_length);
+        
         for (size_t i = 0; i < result_length; i++)
         {
-            result.data[i] = a->data[i] + b->data[i];
+            vector_set(&result, i, vector_get(a, i) + vector_get(b, i));
         }
         
         return result;
@@ -58,8 +68,8 @@ Vector vector_add(const Vector *a, const Vector *b)
     else{
         return vector_create(0);
     }
-
 }
+
 Vector vector_scale(const Vector *a, float scalar)
 {
     Vector result = vector_create(a->length);
@@ -70,10 +80,10 @@ Vector vector_scale(const Vector *a, float scalar)
 
     for (size_t i = 0; i < a->length; i++)
     {
-        result.data[i] = a->data[i] * scalar;
+        vector_set(&result, i, vector_get(a, i) * scalar);
     }
 
     return result;
-}    
+}     
     
 

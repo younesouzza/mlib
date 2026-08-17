@@ -14,5 +14,7 @@ void vector_destroy(Vector *v);
 bool vector_dot(const Vector *a, const Vector *b, float *out_result);
 Vector vector_add(const Vector *a, const Vector *b);
 Vector vector_scale(const Vector *a, float scalar);
+float vector_get(const Vector *v, size_t index);
+void vector_set(Vector *v, size_t index, float value);
 
 #endif
