@@ -29,3 +29,13 @@ add_test(
     NAME test_linalg
     COMMAND test_linalg
 )
+add_executable(test_tensor
+    test_tensor.c
+)
+
+target_link_libraries(test_tensor PRIVATE mlib)
+
+add_test(
+    NAME test_tensor
+    COMMAND test_tensor
+)

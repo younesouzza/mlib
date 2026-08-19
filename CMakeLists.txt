@@ -10,6 +10,7 @@ add_library(mlib
     src/vector.c
     src/matrix.c
     src/linalg.c
+    src/tensor.c
 
 
 )
