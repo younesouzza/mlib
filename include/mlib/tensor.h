@@ -15,5 +15,7 @@ typedef struct {
 
 Tensor tensor_create(size_t ndim, const size_t *shape_input);
 void tensor_destroy(Tensor *t);
+float tensor_get(const Tensor *t, const size_t *indices);
+void tensor_set(Tensor *t, const size_t *indices, float value);
 
 #endif

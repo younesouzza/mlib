@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h> 
+#include <assert.h>
 
 Tensor tensor_create(size_t ndim, const size_t *shape_input)
 {
@@ -73,4 +74,34 @@ void tensor_destroy(Tensor *t)
     t->strides = NULL;
     t->ndim = 0;
     t->owns_data = false;
+}
+
+static size_t tensor_calc_offset(const Tensor *t, const size_t *indices)
+{
+    size_t offset = 0;
+    
+    for (size_t i = 0; i < t->ndim; i++) {
+        assert(indices[i] < t->shape[i]); 
+        offset += indices[i] * t->strides[i];
+    }
+    
+    return offset;
+}
+
+float tensor_get(const Tensor *t, const size_t *indices)
+{
+    assert(t != NULL);
+    assert(t->data != NULL);
+    
+    size_t offset = tensor_calc_offset(t, indices);
+    return t->data[offset];
+}
+
+void tensor_set(Tensor *t, const size_t *indices, float value)
+{
+    assert(t != NULL);
+    assert(t->data != NULL);
+    
+    size_t offset = tensor_calc_offset(t, indices);
+    t->data[offset] = value;
 }
