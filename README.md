@@ -13,5 +13,5 @@ first principles, not just wired together from existing libraries.
 
 ## Status
 
-Early development. Core infrastructure (build system, project layout)
+Early development. Core infrastructure 
 is being set up; no library functionality exists yet.
