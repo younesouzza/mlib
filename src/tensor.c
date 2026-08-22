@@ -105,3 +105,68 @@ void tensor_set(Tensor *t, const size_t *indices, float value)
     size_t offset = tensor_calc_offset(t, indices);
     t->data[offset] = value;
 }
+
+Tensor tensor_add(const Tensor *a, const Tensor *b)
+{
+    if (a == NULL || b == NULL) {
+        return (Tensor){0};
+    }
+
+    if (a->ndim != b->ndim) {
+        return (Tensor){0};
+    }
+    for (size_t i = 0; i < a->ndim; i++) {
+        if (a->shape[i] != b->shape[i]) {
+            return (Tensor){0};
+        }
+    }
+
+    Tensor result = tensor_create(a->ndim, a->shape);
+
+
+    size_t total_elements = 1;
+    for (size_t i = 0; i < a->ndim; i++) {
+        total_elements *= a->shape[i];
+    }
+
+    if (result.data == NULL && total_elements > 0) {
+        return result;  
+    }
+    if (total_elements == 0) {
+        return result;  
+    }
+
+    if (a->ndim == 0) {
+        result.data[0] = a->data[0] + b->data[0];
+        return result;
+    }
+
+    size_t *coords = calloc(a->ndim, sizeof(size_t));
+    if (coords == NULL) {
+        tensor_destroy(&result);
+        return (Tensor){0};
+    }
+
+    int carry;
+    do {
+        size_t offset_a = tensor_calc_offset(a, coords);
+        size_t offset_b = tensor_calc_offset(b, coords);
+        size_t offset_r = tensor_calc_offset(&result, coords);
+
+        result.data[offset_r] = a->data[offset_a] + b->data[offset_b];
+
+        carry = 1;
+        for (int i = (int)a->ndim - 1; i >= 0 && carry; i--) {
+            coords[i] += (size_t)carry;
+            if (coords[i] >= a->shape[i]) {
+                coords[i] = 0;
+                carry = 1;
+            } else {
+                carry = 0;
+            }
+        }
+    } while (!carry);
+
+    free(coords);
+    return result;
+}

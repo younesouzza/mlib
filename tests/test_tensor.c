@@ -5,10 +5,6 @@
 #include <math.h>
 #include "mlib/tensor.h"
 
-/* 
- * Helper for floating-point comparison. 
- * Never use == for floats in an ML library!
- */
 static void assert_float_eq(float actual, float expected, float epsilon, const char* msg) {
     if (fabsf(actual - expected) > epsilon) {
         printf("FAIL: %s | Expected %f, got %f\n", msg, expected, actual);
@@ -16,11 +12,88 @@ static void assert_float_eq(float actual, float expected, float epsilon, const c
     }
 }
 
+void test_tensor_add(void)
+{
+    float epsilon = 1e-5f;
+    printf("Running tensor_add tests...\n");
+
+    {
+        size_t shape[] = {2, 3};
+        Tensor a = tensor_create(2, shape);
+        Tensor b = tensor_create(2, shape);
+
+        for (size_t i = 0; i < 2; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                tensor_set(&a, (size_t[]){i, j}, 1.0f);
+                tensor_set(&b, (size_t[]){i, j}, 2.0f);
+            }
+        }
+        Tensor sum = tensor_add(&a, &b);
+        assert(sum.ndim == 2);
+
+        for (size_t i = 0; i < 2; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                float val = tensor_get(&sum, (size_t[]){i, j});
+                assert_float_eq(val, 3.0f, epsilon, "contiguous add");
+            }
+        }
+
+        tensor_destroy(&a);
+        tensor_destroy(&b);
+        tensor_destroy(&sum);
+    }
+
+    {
+        size_t shape_a[] = {2, 3};
+        Tensor a = tensor_create(2, shape_a);
+        for (size_t i = 0; i < 2; i++)
+            for (size_t j = 0; j < 3; j++)
+                tensor_set(&a, (size_t[]){i, j}, (float)(i * 10 + j));
+
+        Tensor b_view = {0};
+        b_view.data = a.data;
+        b_view.ndim = 2;
+        b_view.shape = (size_t[]){3, 2};
+        b_view.strides = (size_t[]){1, 3};
+        b_view.owns_data = false;
+
+        size_t shape_c[] = {3, 2};
+        Tensor c = tensor_create(2, shape_c);
+        for (size_t i = 0; i < 3; i++)
+            for (size_t j = 0; j < 2; j++)
+                tensor_set(&c, (size_t[]){i, j}, 2.0f);
+
+
+        Tensor sum = tensor_add(&b_view, &c);
+        assert(sum.ndim == 2);
+        assert(sum.shape[0] == 3);
+        assert(sum.shape[1] == 2);
+
+        float expected[3][2] = {
+            {2.0f, 12.0f},
+            {3.0f, 13.0f},
+            {4.0f, 14.0f}
+        };
+
+        for (size_t i = 0; i < 3; i++) {
+            for (size_t j = 0; j < 2; j++) {
+                float val = tensor_get(&sum, (size_t[]){i, j});
+                assert_float_eq(val, expected[i][j], epsilon, "non-contiguous add");
+            }
+        }
+
+        tensor_destroy(&a);
+        tensor_destroy(&c);
+        tensor_destroy(&sum);
+    }
+
+    printf("tensor_add tests PASSED\n");
+}
+
 int main(void)
 {
     float epsilon = 1e-5f;
 
-    /* Test 1: 1D Tensor (behaves like a Vector) */
     {
         size_t shape[] = {5};
         Tensor t = tensor_create(1, shape);
@@ -28,9 +101,7 @@ int main(void)
         assert(t.ndim == 1);
         assert(t.strides[0] == 1);
 
-        // Write and Read using the new API
         for (size_t i = 0; i < 5; i++) {
-            // C99 Compound literal to create the indices array on the fly
             tensor_set(&t, (size_t[]){i}, i * 1.5f); 
         }
         
@@ -41,8 +112,6 @@ int main(void)
         
         tensor_destroy(&t);
     }
-
-    /* Test 2: 2D Tensor (behaves like a Matrix) */
     {
         size_t shape[] = {3, 4};
         Tensor t = tensor_create(2, shape);
@@ -50,11 +119,9 @@ int main(void)
         assert(t.ndim == 2);
         assert(t.strides[0] == 4);
         assert(t.strides[1] == 1);
-
-        // Write and Read using the new API
         for (size_t i = 0; i < 3; i++) {
             for (size_t j = 0; j < 4; j++) {
-                float value = (i * 10.0f) + j; // Unique value for each cell
+                float value = (i * 10.0f) + j; 
                 tensor_set(&t, (size_t[]){i, j}, value);
             }
         }
@@ -135,6 +202,10 @@ int main(void)
         tensor_destroy(&t); 
         tensor_destroy(NULL); 
     }
+    test_tensor_add();
+    
 
     return 0;
+
+
 }
