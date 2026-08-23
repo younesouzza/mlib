@@ -170,3 +170,52 @@ Tensor tensor_add(const Tensor *a, const Tensor *b)
     free(coords);
     return result;
 }
+
+Tensor tensor_scale(const Tensor *a, float scalar)
+{
+    if (a == NULL) {
+        return (Tensor){0};
+    }
+
+    Tensor result = tensor_create(a->ndim, a->shape);
+    
+    if (result.data == NULL) {
+        return result; 
+    }
+
+    size_t total_elements = 1;
+    for (size_t i = 0; i < a->ndim; i++) {
+        total_elements *= a->shape[i];
+    }
+    if (total_elements == 0) {
+        return result;
+    }
+
+    size_t *coords = calloc(a->ndim, sizeof(size_t));
+    if (coords == NULL) {
+        tensor_destroy(&result);
+        return (Tensor){0};
+    }
+
+    int carry;
+    do {
+        size_t offset_a = tensor_calc_offset(a, coords);
+        size_t offset_r = tensor_calc_offset(&result, coords);
+
+        result.data[offset_r] = a->data[offset_a] * scalar;
+
+        carry = 1;
+        for (int i = (int)a->ndim - 1; i >= 0 && carry; i--) {
+            coords[i] += (size_t)carry;
+            if (coords[i] >= a->shape[i]) {
+                coords[i] = 0;
+                carry = 1;
+            } else {
+                carry = 0;
+            }
+        }
+    } while (!carry);
+
+    free(coords);
+    return result;
+}

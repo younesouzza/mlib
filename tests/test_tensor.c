@@ -11,7 +11,87 @@ static void assert_float_eq(float actual, float expected, float epsilon, const c
         exit(1);
     }
 }
+void test_tensor_scale(void)
+{
+    float epsilon = 1e-5f;
+    printf("Running tensor_scale tests...\n");
 
+    /* Test 1: Contiguous Scaling */
+    {
+        size_t shape[] = {2, 3};
+        Tensor a = tensor_create(2, shape);
+        
+        for (size_t i = 0; i < 2; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                tensor_set(&a, (size_t[]){i, j}, 2.0f);
+            }
+        }
+
+        Tensor scaled = tensor_scale(&a, 3.0f);
+        assert(scaled.ndim == 2);
+        
+        for (size_t i = 0; i < 2; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                float val = tensor_get(&scaled, (size_t[]){i, j});
+                assert_float_eq(val, 6.0f, epsilon, "contiguous scale");
+            }
+        }
+        
+        tensor_destroy(&a);
+        tensor_destroy(&scaled);
+    }
+
+    /* Test 2: Non-Contiguous (Transposed View) Scaling */
+    {
+        /* Create a contiguous 2x3 matrix filled with 4.0 */
+        size_t shape_a[] = {2, 3};
+        Tensor a = tensor_create(2, shape_a);
+        for(size_t i=0; i<2; i++) 
+            for(size_t j=0; j<3; j++) 
+                tensor_set(&a, (size_t[]){i, j}, 4.0f);
+
+        /* Manually create a transposed view (shape [3, 2], strides [1, 3]) */
+        Tensor a_view = {0};
+        a_view.data = a.data;           
+        a_view.ndim = 2;
+        a_view.shape = (size_t[]){3, 2};
+        a_view.strides = (size_t[]){1, 3}; 
+        a_view.owns_data = false;       
+
+        /* Scale the view by 2.0. Expected result: 3x2 matrix of 8.0 */
+        Tensor scaled_view = tensor_scale(&a_view, 2.0f);
+        
+        assert(scaled_view.ndim == 2);
+        assert(scaled_view.shape[0] == 3);
+        assert(scaled_view.shape[1] == 2);
+
+        for(size_t i=0; i<3; i++) {
+            for(size_t j=0; j<2; j++) {
+                float val = tensor_get(&scaled_view, (size_t[]){i, j});
+                assert_float_eq(val, 8.0f, epsilon, "non-contiguous scale");
+            }
+        }
+
+        tensor_destroy(&a);
+        tensor_destroy(&scaled_view);
+        /* DO NOT destroy a_view */
+    }
+
+    /* Test 3: Zero-element tensor scaling */
+    {
+        size_t shape[] = {2, 0, 4};
+        Tensor a = tensor_create(3, shape);
+        Tensor scaled = tensor_scale(&a, 5.0f);
+        
+        assert(scaled.ndim == 3);
+        assert(scaled.data == NULL);
+        
+        tensor_destroy(&a);
+        tensor_destroy(&scaled);
+    }
+
+    printf("tensor_scale tests PASSED\n");
+}
 void test_tensor_add(void)
 {
     float epsilon = 1e-5f;
@@ -203,6 +283,8 @@ int main(void)
         tensor_destroy(NULL); 
     }
     test_tensor_add();
+    test_tensor_scale();
+
     
 
     return 0;
