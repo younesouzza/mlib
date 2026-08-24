@@ -219,3 +219,42 @@ Tensor tensor_scale(const Tensor *a, float scalar)
     free(coords);
     return result;
 }
+Tensor tensor_transpose(const Tensor *t)
+{
+    if (t == NULL || t->ndim < 2) {
+        return (Tensor){0};
+    }
+
+    Tensor result = {0};
+    result.ndim = t->ndim;
+
+    result.shape = malloc(t->ndim * sizeof(size_t));
+    if (result.shape == NULL) {
+        return (Tensor){0};
+    }
+
+    result.strides = malloc(t->ndim * sizeof(size_t));
+    if (result.strides == NULL) {
+        free(result.shape);
+        return (Tensor){0};
+    }
+
+    memcpy(result.shape, t->shape, t->ndim * sizeof(size_t));
+    memcpy(result.strides, t->strides, t->ndim * sizeof(size_t));
+
+    size_t last = t->ndim - 1;
+    size_t second_last = t->ndim - 2;
+
+    size_t tmp_shape = result.shape[last];
+    result.shape[last] = result.shape[second_last];
+    result.shape[second_last] = tmp_shape;
+
+    size_t tmp_stride = result.strides[last];
+    result.strides[last] = result.strides[second_last];
+    result.strides[second_last] = tmp_stride;
+
+    result.data = t->data;
+    result.owns_data = false;
+
+    return result;
+}

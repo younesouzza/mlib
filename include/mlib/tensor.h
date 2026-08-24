@@ -19,5 +19,6 @@ float tensor_get(const Tensor *t, const size_t *indices);
 void tensor_set(Tensor *t, const size_t *indices, float value);
 Tensor tensor_add(const Tensor *a, const Tensor *b);
 Tensor tensor_scale(const Tensor *a, float scalar);
+Tensor tensor_transpose(const Tensor *t);
 
 #endif

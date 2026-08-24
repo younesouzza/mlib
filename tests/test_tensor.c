@@ -169,6 +169,109 @@ void test_tensor_add(void)
 
     printf("tensor_add tests PASSED\n");
 }
+void test_tensor_transpose(void)
+{
+    float epsilon = 1e-5f;
+
+    /* Test 1: 2D Transpose & Stride Verification */
+    {
+        size_t shape[] = {2, 3};
+        Tensor t = tensor_create(2, shape);
+        
+        // Fill with distinct values: [[1, 2, 3], [4, 5, 6]]
+        tensor_set(&t, (size_t[]){0, 0}, 1.0f);
+        tensor_set(&t, (size_t[]){0, 1}, 2.0f);
+        tensor_set(&t, (size_t[]){0, 2}, 3.0f);
+        tensor_set(&t, (size_t[]){1, 0}, 4.0f);
+        tensor_set(&t, (size_t[]){1, 1}, 5.0f);
+        tensor_set(&t, (size_t[]){1, 2}, 6.0f);
+
+        Tensor view = tensor_transpose(&t);
+        
+        // 1. Verify Shape and Strides swapped
+        assert(view.ndim == 2);
+        assert(view.shape[0] == 3);
+        assert(view.shape[1] == 2);
+        assert(view.strides[0] == 1); // Was 3
+        assert(view.strides[1] == 3); // Was 1
+
+        // 2. Verify logical data mapping
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 0}), 1.0f, epsilon, "view 0,0");
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 1}), 4.0f, epsilon, "view 0,1"); // Swapped
+        assert_float_eq(tensor_get(&view, (size_t[]){2, 1}), 6.0f, epsilon, "view 2,1"); // Swapped
+
+        tensor_destroy(&t);
+        tensor_destroy(&view); 
+    }
+    /* Test 2: The "View" Proof (Shared Memory) */
+    {
+        size_t shape[] = {2, 2};
+        Tensor t = tensor_create(2, shape);
+        
+        tensor_set(&t, (size_t[]){0, 0}, 1.0f);
+        tensor_set(&t, (size_t[]){0, 1}, 2.0f);
+        tensor_set(&t, (size_t[]){1, 0}, 3.0f);
+        tensor_set(&t, (size_t[]){1, 1}, 4.0f);
+
+        Tensor view = tensor_transpose(&t);
+        tensor_set(&t, (size_t[]){0, 1}, 99.0f);
+        float val = tensor_get(&view, (size_t[]){1, 0});
+        assert_float_eq(val, 99.0f, epsilon, "shared memory");
+
+        tensor_destroy(&t);
+        tensor_destroy(&view);
+    }
+
+    /* Test 3: 3D Tensor (Batched Matrix Transpose) */
+    {
+        // Shape: [Batch=2, Rows=3, Cols=4]
+        size_t shape[] = {2, 3, 4};
+        Tensor t = tensor_create(3, shape);
+        
+        // Expected original strides: [12, 4, 1]
+        assert(t.strides[0] == 12);
+        assert(t.strides[1] == 4);
+        assert(t.strides[2] == 1);
+
+        Tensor view = tensor_transpose(&t);
+
+        // Expected new shape: [2, 4, 3]
+        assert(view.ndim == 3);
+        assert(view.shape[0] == 2);
+        assert(view.shape[1] == 4);
+        assert(view.shape[2] == 3);
+
+        // Expected new strides: [12, 1, 4] (Only last two swapped)
+        assert(view.strides[0] == 12);
+        assert(view.strides[1] == 1);
+        assert(view.strides[2] == 4);
+
+        // Verify a specific value mapping
+        tensor_set(&t, (size_t[]){1, 2, 3}, 42.0f);
+        float val = tensor_get(&view, (size_t[]){1, 3, 2});
+        assert_float_eq(val, 42.0f, epsilon, "3D mapping");
+
+        tensor_destroy(&t);
+        tensor_destroy(&view);
+    }
+
+    /* Test 4: Edge Cases (NULL and 1D) */
+    {        
+        Tensor null_view = tensor_transpose(NULL);
+        assert(null_view.ndim == 0);
+        assert(null_view.data == NULL);
+        tensor_destroy(&null_view);
+
+        size_t shape_1d[] = {5};
+        Tensor t_1d = tensor_create(1, shape_1d);
+        Tensor bad_view = tensor_transpose(&t_1d);
+        assert(bad_view.ndim == 0); // Should fail safely
+        assert(bad_view.data == NULL);
+        
+        tensor_destroy(&t_1d);
+        tensor_destroy(&bad_view);
+    }
+}
 
 int main(void)
 {
@@ -284,6 +387,8 @@ int main(void)
     }
     test_tensor_add();
     test_tensor_scale();
+    test_tensor_transpose();
+    test_tensor_transpose();
 
     
 
