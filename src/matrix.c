@@ -119,3 +119,25 @@ bool matrix_multiply(const Matrix *a, const Matrix *b, Matrix *out_result)
         return true;
     }
 }
+
+Matrix matrix_transpose(const Matrix *m)
+{
+    if (m == NULL) {
+        return (Matrix){0}; 
+    }
+    Matrix t = matrix_create(m->cols, m->rows);
+    if (t.data == NULL && (m->rows > 0 && m->cols > 0)) {
+        return t; 
+    }
+
+    for (size_t i = 0; i < t.rows; i++)
+    {
+        for (size_t j = 0; j < t.cols; j++) 
+        {
+            float data = matrix_get(m, j, i);  
+            matrix_set(&t, i, j, data); 
+        }
+    }
+    
+    return t;
+}

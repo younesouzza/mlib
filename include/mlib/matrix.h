@@ -17,5 +17,7 @@ void matrix_set(Matrix *m, size_t row, size_t col, float value);
 Matrix matrix_add(const Matrix *m1, const Matrix *m2);
 Matrix matrix_scale(const Matrix *m , float scalar);
 bool matrix_multiply(const Matrix *a, const Matrix *b, Matrix *out_result);
+Matrix matrix_transpose(const Matrix *m);
+
 
 #endif

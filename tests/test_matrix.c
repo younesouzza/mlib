@@ -1,6 +1,69 @@
 #include "mlib/matrix.h"
 #include <assert.h>
 
+void test_matrix_transpose(void)
+{
+    /* Test 1: Square Matrix (3x3) */
+    {
+        Matrix m = matrix_create(3, 3);
+        float vals[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        for (size_t i = 0; i < 3; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                matrix_set(&m, i, j, vals[i * 3 + j]);
+            }
+        }
+
+        Matrix t = matrix_transpose(&m);
+        
+        assert(t.rows == 3);
+        assert(t.cols == 3);
+        
+        /* Verify transposed values */
+        assert(matrix_get(&t, 0, 0) == 1.0f);
+        assert(matrix_get(&t, 0, 1) == 4.0f); 
+        assert(matrix_get(&t, 1, 0) == 2.0f); 
+        assert(matrix_get(&t, 2, 2) == 9.0f);
+
+        matrix_destroy(&m);
+        matrix_destroy(&t);
+    }
+
+    {
+        Matrix m = matrix_create(2, 3);
+        float vals[] = {1, 2, 3, 4, 5, 6};
+        for (size_t i = 0; i < 2; i++) {
+            for (size_t j = 0; j < 3; j++) {
+                matrix_set(&m, i, j, vals[i * 3 + j]);
+            }
+        }
+
+        Matrix t = matrix_transpose(&m);
+        
+        /* Prove dimensions swapped */
+        assert(t.rows == 3);
+        assert(t.cols == 2);
+        
+        /* Verify values */
+        assert(matrix_get(&t, 0, 0) == 1.0f);
+        assert(matrix_get(&t, 0, 1) == 4.0f);
+        assert(matrix_get(&t, 1, 0) == 2.0f);
+        assert(matrix_get(&t, 1, 1) == 5.0f);
+        assert(matrix_get(&t, 2, 0) == 3.0f);
+        assert(matrix_get(&t, 2, 1) == 6.0f);
+
+        matrix_destroy(&m);
+        matrix_destroy(&t);
+    }
+    /* Test 3: NULL Input */
+    {
+        Matrix t = matrix_transpose(NULL);
+        assert(t.data == NULL);
+        assert(t.rows == 0);
+        assert(t.cols == 0);
+        matrix_destroy(&t); 
+    }
+}
+
 int main(void){
     Matrix m = matrix_create(2,3);
     Matrix m1 = matrix_create(2,0);
@@ -117,6 +180,9 @@ int main(void){
     bool mul_bad = matrix_multiply(&a3, &b3, &bad_product);
     assert(mul_bad == false);
 
+    test_matrix_transpose();
+
+
     matrix_destroy(&a3);
     matrix_destroy(&b3);
     
@@ -129,6 +195,7 @@ int main(void){
     matrix_destroy(&m);
     matrix_destroy(&m1);
     matrix_destroy(&m2);
+
 
 
 
