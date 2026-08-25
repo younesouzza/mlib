@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h> 
 #include <assert.h>
+#include <stdbool.h>
 
 Tensor tensor_create(size_t ndim, const size_t *shape_input)
 {
@@ -252,6 +253,73 @@ Tensor tensor_transpose(const Tensor *t)
     size_t tmp_stride = result.strides[last];
     result.strides[last] = result.strides[second_last];
     result.strides[second_last] = tmp_stride;
+
+    result.data = t->data;
+    result.owns_data = false;
+
+    return result;
+}
+static bool tensor_is_contiguous(const Tensor *t)
+{
+    if (t->ndim == 0) return true;
+    
+    if (t->strides[t->ndim - 1] != 1) return false;
+
+    for (size_t i = t->ndim - 1; i > 0; i--) {
+        if (t->strides[i - 1] != t->strides[i] * t->shape[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Tensor tensor_reshape(const Tensor *t, size_t new_ndim, const size_t *new_shape)
+{
+    if (t == NULL) {
+        return (Tensor){0};
+    }
+    if (!tensor_is_contiguous(t)) {
+        return (Tensor){0};
+    }
+
+    size_t old_total = 1;
+    for (size_t i = 0; i < t->ndim; i++) {
+        old_total *= t->shape[i];
+    }
+
+    size_t new_total = 1;
+    for (size_t i = 0; i < new_ndim; i++) {
+        if (new_shape[i] == 0) {
+            new_total = 0;
+            break;
+        }
+        new_total *= new_shape[i];
+    }
+
+    if (old_total != new_total) {
+        return (Tensor){0};
+    }
+
+    Tensor result = {0};
+    result.ndim = new_ndim;
+
+    result.shape = malloc(new_ndim * sizeof(size_t));
+    if (result.shape == NULL) {
+        return (Tensor){0};
+    }
+    memcpy(result.shape, new_shape, new_ndim * sizeof(size_t));
+
+    result.strides = malloc(new_ndim * sizeof(size_t));
+    if (result.strides == NULL) {
+        free(result.shape);
+        return (Tensor){0};
+    }
+    if (new_ndim > 0) {
+        result.strides[new_ndim - 1] = 1;
+        for (size_t i = new_ndim - 1; i > 0; i--) {
+            result.strides[i - 1] = result.strides[i] * result.shape[i];
+        }
+    }
 
     result.data = t->data;
     result.owns_data = false;
