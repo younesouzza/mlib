@@ -21,5 +21,6 @@ Tensor tensor_add(const Tensor *a, const Tensor *b);
 Tensor tensor_scale(const Tensor *a, float scalar);
 Tensor tensor_transpose(const Tensor *t);
 Tensor tensor_reshape(const Tensor *t, size_t new_ndim, const size_t *new_shape);
+Tensor tensor_slice(const Tensor *t, const size_t *start_indices, const size_t *slice_shape);
 
 #endif

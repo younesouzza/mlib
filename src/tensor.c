@@ -326,3 +326,48 @@ Tensor tensor_reshape(const Tensor *t, size_t new_ndim, const size_t *new_shape)
 
     return result;
 }
+
+Tensor tensor_slice(const Tensor *t, 
+                    const size_t *start_indices, 
+                    const size_t *slice_shape)
+{
+    if (t == NULL || start_indices == NULL || slice_shape == NULL) {
+        return (Tensor){0};
+    }
+
+    for (size_t i = 0; i < t->ndim; i++) {
+
+        if (slice_shape[i] > t->shape[i] - start_indices[i]) {
+            return (Tensor){0}; /* Out of bounds */
+        }
+    }
+
+    size_t offset = 0;
+    for (size_t i = 0; i < t->ndim; i++) {
+        offset += start_indices[i] * t->strides[i];
+    }
+    Tensor result = {0};
+    result.ndim = t->ndim;
+    result.owns_data = false; 
+
+    if (t->ndim > 0) {
+        result.shape = malloc(t->ndim * sizeof(size_t));
+        if (result.shape == NULL) {
+            return (Tensor){0};
+        }
+        
+        result.strides = malloc(t->ndim * sizeof(size_t));
+        if (result.strides == NULL) {
+            free(result.shape);
+            return (Tensor){0};
+        }
+
+        for (size_t i = 0; i < t->ndim; i++) {
+            result.shape[i] = slice_shape[i];
+            result.strides[i] = t->strides[i]; 
+        }
+    }
+    result.data = t->data + offset;
+
+    return result;
+}

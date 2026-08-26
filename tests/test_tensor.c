@@ -373,7 +373,187 @@ void test_tensor_reshape(void)
     }
 
 }
+void test_tensor_slice(void)
+{
+    float epsilon = 1e-5f;
+    /* Test 1: Happy Path (2D Slice) */
+    {
+        size_t shape[] = {10, 10};
+        Tensor t = tensor_create(2, shape);
+        
+        /* Fill with values: t[i][j] = i * 10 + j */
+        for (size_t i = 0; i < 10; i++) {
+            for (size_t j = 0; j < 10; j++) {
+                tensor_set(&t, (size_t[]){i, j}, (float)(i * 10 + j));
+            }
+        }
 
+        /* Slice a 3x3 block starting at [2, 2] */
+        size_t start[] = {2, 2};
+        size_t slice_shape[] = {3, 3};
+        Tensor view = tensor_slice(&t, start, slice_shape);
+        
+        assert(view.ndim == 2);
+        assert(view.shape[0] == 3);
+        assert(view.shape[1] == 3);
+        assert(view.strides[0] == 10); /* Inherited from parent */
+        assert(view.strides[1] == 1);  /* Inherited from parent */
+        assert(view.owns_data == false);
+
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 0}), 22.0f, epsilon, "slice 0,0");
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 1}), 23.0f, epsilon, "slice 0,1");
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 2}), 24.0f, epsilon, "slice 0,2");
+        assert_float_eq(tensor_get(&view, (size_t[]){1, 0}), 32.0f, epsilon, "slice 1,0");
+        assert_float_eq(tensor_get(&view, (size_t[]){2, 2}), 44.0f, epsilon, "slice 2,2");
+
+        tensor_destroy(&t);
+        tensor_destroy(&view);
+    }
+
+    /* Test 2: The Shared Memory Proof (Zero-Copy) */
+    {
+        size_t shape[] = {5, 5};
+        Tensor t = tensor_create(2, shape);
+        
+        for (size_t i = 0; i < 5; i++) {
+            for (size_t j = 0; j < 5; j++) {
+                tensor_set(&t, (size_t[]){i, j}, 0.0f);
+            }
+        }
+
+        size_t start[] = {1, 1};
+        size_t slice_shape[] = {2, 2};
+        Tensor view = tensor_slice(&t, start, slice_shape);
+
+        /* CRITICAL: Modify the ORIGINAL tensor at [2, 2] */
+        tensor_set(&t, (size_t[]){2, 2}, 99.0f);
+
+      
+        float val = tensor_get(&view, (size_t[]){1, 1});
+        assert_float_eq(val, 99.0f, epsilon, "shared memory");
+
+        tensor_destroy(&t);
+        tensor_destroy(&view);
+    }
+
+    /* Test 3: Non-Contiguous Slice (Slice of a Transpose) */
+    {
+        
+        /* 1. Create a contiguous 2x3 matrix */
+        size_t shape_a[] = {2, 3};
+        Tensor a = tensor_create(2, shape_a);
+        
+        tensor_set(&a, (size_t[]){0, 0}, 1.0f);
+        tensor_set(&a, (size_t[]){0, 1}, 2.0f);
+        tensor_set(&a, (size_t[]){0, 2}, 3.0f);
+        tensor_set(&a, (size_t[]){1, 0}, 4.0f);
+        tensor_set(&a, (size_t[]){1, 1}, 5.0f);
+        tensor_set(&a, (size_t[]){1, 2}, 6.0f);
+
+        /* 2. Transpose it (non-contiguous view) */
+        Tensor a_t = tensor_transpose(&a);
+        
+        assert(a_t.strides[0] == 1);
+        assert(a_t.strides[1] == 3);
+
+        /* 3. Slice the transposed view: take a 2x1 block starting at [0, 0] */
+        size_t start[] = {0, 0};
+        size_t slice_shape[] = {2, 1};
+        Tensor slice_of_transpose = tensor_slice(&a_t, start, slice_shape);
+        
+     
+        assert(slice_of_transpose.ndim == 2);
+        assert(slice_of_transpose.shape[0] == 2);
+        assert(slice_of_transpose.shape[1] == 1);
+        
+        /* The slice inherits the scrambled strides from the transposed parent */
+        assert(slice_of_transpose.strides[0] == 1);
+        assert(slice_of_transpose.strides[1] == 3);
+
+        assert_float_eq(tensor_get(&slice_of_transpose, (size_t[]){0, 0}), 1.0f, epsilon, "nc slice 0,0");
+        assert_float_eq(tensor_get(&slice_of_transpose, (size_t[]){1, 0}), 2.0f, epsilon, "nc slice 1,0");
+
+        tensor_destroy(&a);
+        tensor_destroy(&a_t);
+        tensor_destroy(&slice_of_transpose);
+    }
+
+    /* Test 4: Failure Path (Out of Bounds) */
+    {
+        size_t shape[] = {10, 10};
+        Tensor t = tensor_create(2, shape);
+        
+     
+        size_t start[] = {9, 9};
+        size_t slice_shape[] = {3, 3};
+        Tensor bad_slice = tensor_slice(&t, start, slice_shape);
+        
+        /* Must return a safe, zero-initialized state */
+        assert(bad_slice.ndim == 0);
+        assert(bad_slice.data == NULL);
+        assert(bad_slice.shape == NULL);
+        
+        tensor_destroy(&t);
+        tensor_destroy(&bad_slice);
+    }
+
+    /* Test 5: Edge Case (Empty Slice with 0 dimension) */
+    {
+        size_t shape[] = {5, 5};
+        Tensor t = tensor_create(2, shape);
+        
+        /* Slice with shape [0, 3] - valid, but creates an empty tensor */
+        size_t start[] = {0, 0};
+        size_t slice_shape[] = {0, 3};
+        Tensor empty_slice = tensor_slice(&t, start, slice_shape);
+        
+        assert(empty_slice.ndim == 2);
+        assert(empty_slice.shape[0] == 0);
+        assert(empty_slice.shape[1] == 3);
+        assert(empty_slice.owns_data == false);
+        
+        tensor_destroy(&t);
+        tensor_destroy(&empty_slice);
+    }
+
+    /* Test 6: 3D Slice (Batched Matrix) */
+    {
+        /* Shape: [Batch=4, Rows=5, Cols=6] */
+        size_t shape[] = {4, 5, 6};
+        Tensor t = tensor_create(3, shape);
+        
+        /* Fill with values: t[b][i][j] = b*100 + i*10 + j */
+        for (size_t b = 0; b < 4; b++) {
+            for (size_t i = 0; i < 5; i++) {
+                for (size_t j = 0; j < 6; j++) {
+                    float val = (float)(b * 100 + i * 10 + j);
+                    tensor_set(&t, (size_t[]){b, i, j}, val);
+                }
+            }
+        }
+
+        /* Extract a sub-batch: batches [1, 2], rows [2, 3], cols [3, 4] */
+        size_t start[] = {1, 2, 3};
+        size_t slice_shape[] = {2, 2, 2};
+        Tensor view = tensor_slice(&t, start, slice_shape);
+        
+        assert(view.ndim == 3);
+        assert(view.shape[0] == 2);
+        assert(view.shape[1] == 2);
+        assert(view.shape[2] == 2);
+        
+        /* 
+         * view[0,0,0] = t[1,2,3] = 1*100 + 2*10 + 3 = 123
+         * view[1,1,1] = t[2,3,4] = 2*100 + 3*10 + 4 = 234
+         */
+        assert_float_eq(tensor_get(&view, (size_t[]){0, 0, 0}), 123.0f, epsilon, "3D 0,0,0");
+        assert_float_eq(tensor_get(&view, (size_t[]){1, 1, 1}), 234.0f, epsilon, "3D 1,1,1");
+
+        tensor_destroy(&t);
+        tensor_destroy(&view);
+    }
+
+}
 int main(void)
 {
     float epsilon = 1e-5f;
@@ -490,6 +670,7 @@ int main(void)
     test_tensor_scale();
     test_tensor_transpose();
     test_tensor_reshape();
+    test_tensor_slice();
 
     
 
